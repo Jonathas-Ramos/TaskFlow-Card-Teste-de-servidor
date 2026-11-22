@@ -12,8 +12,7 @@
     <li>Questões adaptadas: <strong>{{ uso_gemini.adaptacoes }}</strong></li>
     <li>Narrações geradas: <strong>{{ uso_gemini.narracoes }}</strong></li>
   </ul>
-  <p>Este registro local não informa quanto resta da cota. Os limites oficiais variam por projeto e modelo e também incluem usos feitos fora do jogo.</p>
-  <p><a href="https://aistudio.google.com/rate-limit?timeRange=last-28-days">Consultar limites e uso no Google AI Studio</a></p>
+  <p>Cota restante: <strong>indisponível</strong>. Os limites variam por projeto e modelo e incluem usos feitos fora do jogo.</p>
 </section>
 <form class="painel formulario largo" method="post" data-processando="Gerando rascunho…">
   {{ csrf_input(csrf) }}

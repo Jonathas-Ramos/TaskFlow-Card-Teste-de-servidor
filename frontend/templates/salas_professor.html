@@ -43,11 +43,11 @@
           <span><strong>{{ item.sala.nome }}</strong> · {{ item.sala.status|title }}</span>
           <strong>{{ item.total_matriculados }} matriculado(s)</strong>
           {% if item.sala.ano_escolar in ['6º ANO','7º ANO','8º ANO','9º ANO'] and item.sala.sala_escolar in ['MANHÃ','TARDE','INTEGRAL'] %}<small>{{ item.sala.ano_escolar }} · Turma {{ item.sala.turma }} · Período {{ item.sala.sala_escolar|capitalize }}</small>{% else %}<small>Classificação antiga: edite esta sala e selecione ano escolar e período.</small>{% endif %}
-          <small>Código {{ item.sala.codigo }} · rodada {{ item.sala.rodada }} de {{ item.total_questoes }} questão(ões)</small>
+          <small>Rodada {{ item.sala.rodada }} de {{ item.total_questoes }} questão(ões)</small>
           <small>{{ item.total_alunos }} participante(s) na partida atual. O treino individual usa as questões ativas desta sala.</small>
           <div class="acoes acoes-sala">
             <a class="botao" href="{{ url_for('editar_sala_professor', codigo=item.sala.codigo) }}">Editar</a>
-            <form method="post" action="{{ url_for('excluir_sala_professor', codigo=item.sala.codigo) }}" data-confirmar="Excluir definitivamente a sala {{ item.sala.codigo }}?">
+            <form method="post" action="{{ url_for('excluir_sala_professor', codigo=item.sala.codigo) }}" data-confirmar="Excluir definitivamente a sala {{ item.sala.nome }}?">
               {{ csrf_input(csrf) }}
               <button class="botao perigo-borda" type="submit">Excluir</button>
             </form>

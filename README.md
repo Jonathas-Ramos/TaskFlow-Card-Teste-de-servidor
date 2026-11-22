@@ -15,6 +15,8 @@ Esta pasta contém o aplicativo Flask, o frontend, o esquema PostgreSQL e o `ren
 
 O remetente Gmail usa as quatro variáveis `TASKFLOW_GMAIL_*`. A URL de retorno do fluxo de autorização é diferente para cada domínio; se precisar renovar o token, autorize a URL do servidor no Google Cloud. O token de atualização não deve ir para o código.
 
+O aluno acessa a partida pela sala vinculada ao seu ano, turma e período, sem digitar código. O identificador interno da sala permanece no servidor para endereçar a partida e as operações de edição. A dashboard do professor oferece bimestres de calendário (janeiro–fevereiro, março–abril, e assim por diante); os acertos, erros, gráficos e a tabela respeitam o mesmo período. A narração usa o áudio retornado pela API REST de Interactions do Gemini.
+
 Use as credenciais já existentes do Gemini e do Gmail; esta atualização não troca nenhuma delas. Professor e aluno se cadastram com um código de seis dígitos enviado ao próprio Gmail. O professor vê apenas alunos e resultados vinculados às suas salas, seus eventos de log e suas questões. Em **Minha conta**, o aluno pode excluir a própria conta mediante senha e confirmação escrita; a ação retira cadastro e vínculos pessoais do banco e encerra a sessão.
 
 Se o serviço Render já foi criado com `TASKFLOW_SETUP_CODE`, remova essa variável antiga em **Environment** após atualizar o código. Ela não é mais lida. `TASKFLOW_DATA_KEY` e `TASKFLOW_AUDIT_SEED` continuam necessárias; mantenha os valores estáveis após criar dados.

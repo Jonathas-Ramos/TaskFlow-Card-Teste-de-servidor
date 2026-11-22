@@ -13,7 +13,7 @@ def normalizar_filtros_dashboard(valores=None):
     valores = valores or {}
     filtros = {
         campo: str(valores.get(campo, "") or "").strip()
-        for campo in ("aluno_id", "data_inicio", "data_fim", "modo", "dificuldade", "situacao", "turma", "faixa")
+        for campo in ("aluno_id", "data_inicio", "data_fim", "bimestre", "modo", "dificuldade", "situacao", "turma", "faixa")
     }
     for campo, opcoes, mensagem in (
         ("modo", MODOS_JOGO, "Modo de jogo inválido."),
@@ -28,6 +28,17 @@ def normalizar_filtros_dashboard(valores=None):
     if filtros["faixa"] and filtros["faixa"] not in FaixaDesempenho.__members__:
         raise ErroDominio("Selecione uma faixa de desempenho válida.")
     consulta = dict(filtros)
+    if filtros["bimestre"]:
+        correspondencia = re.fullmatch(r"(20\d{2})-([1-6])", filtros["bimestre"])
+        if not correspondencia:
+            raise ErroDominio("Selecione um bimestre válido.")
+        ano, numero = (int(valor) for valor in correspondencia.groups())
+        mes_inicial = 2 * numero - 1
+        consulta["data_inicio"] = date(ano, mes_inicial, 1).isoformat()
+        mes_final = mes_inicial + 2
+        primeiro_dia_seguinte = date(ano + (mes_final > 12), (mes_final - 1) % 12 + 1, 1)
+        consulta["data_fim"] = (primeiro_dia_seguinte - timedelta(days=1)).isoformat()
+        filtros["data_inicio"] = filtros["data_fim"] = ""
     if filtros["aluno_id"]:
         try:
             aluno_id = int(filtros["aluno_id"])
@@ -40,7 +51,7 @@ def normalizar_filtros_dashboard(valores=None):
 
     datas = {}
     for campo in ("data_inicio", "data_fim"):
-        valor = filtros[campo]
+        valor = consulta[campo]
         if not valor:
             continue
         try:
@@ -171,6 +182,11 @@ class ServicoDesempenho(ServicoBase):
         participantes = sum(aluno["total"] > 0 for aluno in alunos)
         return {
             "filtros": filtros,
+            "opcoes_bimestres": [
+                (f"{ano}-{numero}", f"{ano} · {numero}º bimestre ({meses})")
+                for ano in range(datetime.now(ZoneInfo("America/Sao_Paulo")).year, datetime.now(ZoneInfo("America/Sao_Paulo")).year - 5, -1)
+                for numero, meses in enumerate(("jan–fev", "mar–abr", "mai–jun", "jul–ago", "set–out", "nov–dez"), 1)
+            ],
             "opcoes_alunos": cadastrados,
             "opcoes_turmas": sorted(turmas.items(), key=lambda item: item[1].casefold()),
             "opcoes_faixas": list(FaixaDesempenho),

@@ -83,6 +83,7 @@ class GerenciadorSessao:
     @staticmethod
     def autenticar(usuario):
         session.clear()
+        session.permanent = False
         session["usuario_id"] = usuario.id
         session["versao_sessao"] = usuario.versao_sessao
         session["ultima_atividade"] = time.time()
@@ -732,7 +733,10 @@ class VisaoMultijogador(ControladorProtegido):
 
     def post(self):
         try:
-            sala = self.servico.entrar_sala_multijogador(request.form.get("codigo", ""))
+            sala_vinculada = self.dependencias.repositorio.salas.sala_academica_aluno(g.usuario.id)
+            if sala_vinculada is None:
+                raise ErroDominio("Ainda não há sala vinculada ao seu ano, turma e período.")
+            sala = self.servico.entrar_sala_multijogador(sala_vinculada.codigo)
             flash("Você entrou na sala.", "sucesso")
             return redirect(url_for("sala_multijogador", codigo=sala.codigo))
         except ErroDominio as erro:
@@ -1080,6 +1084,16 @@ class AplicacaoTaskFlowWeb:
         def preparar_requisicao():
             g.usuario = self.sessoes.usuario_atual()
             g.perfil_pendente = False
+            acesso_direto = (
+                request.method == "GET"
+                and request.headers.get("Sec-Fetch-Site") == "none"
+                and request.headers.get("Sec-Fetch-Mode") == "navigate"
+            )
+            if g.usuario and acesso_direto:
+                self.sessoes.encerrar()
+                g.usuario = None
+                flash("Por segurança, entre novamente ao abrir o site.", "aviso")
+                return redirect(url_for("inicio"))
             if g.usuario and request.endpoint != "static":
                 agora = time.time()
                 ultima = session.get("ultima_atividade", agora)

@@ -195,7 +195,7 @@ class ServicoGemini:
                     ],
                 }
             ],
-            "response_format": {"type": "audio", "mime_type": "audio/wav"},
+            "response_format": {"type": "audio"},
             "generation_config": {"speech_config": [{"voice": "Kore"}]},
         }
         requisicao = request.Request(
@@ -232,10 +232,18 @@ class ServicoGemini:
 
     @staticmethod
     def _extrair_saida_audio(dados):
-        """Aceita o formato atual do generateContent e o retorno antigo."""
+        """Extrai o áudio da resposta REST de Interactions e dos formatos legados."""
 
         if not isinstance(dados, dict):
             return None
+        # A API REST de Interactions devolve o áudio em steps[].content[].data.
+        # A propriedade output_audio existe no SDK, mas não é garantida no JSON REST.
+        for passo in reversed(dados.get("steps", [])):
+            if not isinstance(passo, dict) or passo.get("type") != "model_output":
+                continue
+            for conteudo in reversed(passo.get("content", [])):
+                if isinstance(conteudo, dict) and conteudo.get("type") == "audio" and conteudo.get("data"):
+                    return conteudo
         for candidato in dados.get("candidates", []):
             conteudo = candidato.get("content", {}) if isinstance(candidato, dict) else {}
             for parte in conteudo.get("parts", []):

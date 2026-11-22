@@ -11,7 +11,6 @@
   <a class="cartao-menu categoria-conteudo" href="{{ url_for('ia') }}"><strong>Questão com IA</strong><span>Gerar rascunho pedagógico</span></a>
   <a class="cartao-menu categoria-administracao" href="{{ url_for('alunos') }}"><strong>Alunos</strong><span>Consultar alunos e suas salas</span></a>
   <a class="cartao-menu categoria-jogo" href="{{ url_for('auditoria') }}"><strong>Logs</strong><span>Consultar eventos técnicos recentes</span></a>
-  {% if usuario_atual.eh_professor %}<a class="cartao-menu categoria-conteudo" href="{{ url_for('seguranca') }}"><strong>Código de emergência</strong><span>Alternativa de recuperação do professor</span></a>{% endif %}
   <a class="cartao-menu categoria-administracao" href="{{ url_for('conta') }}"><strong>Minha conta</strong><span>Anonimização ou saída definitiva</span></a>
 </section>
 {% endblock %}

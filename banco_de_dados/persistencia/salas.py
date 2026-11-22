@@ -5,7 +5,7 @@ from backend.taskflow.classificacao import (
     ANOS_ESCOLARES,
     PERIODOS,
     normalizar_classificacao,
-    validar_idade,
+    validar_idade_aluno,
 )
 from backend.taskflow.dominio import ErroDominio, SalaMultijogador
 from banco_de_dados.banco import ErroIntegridadeBanco
@@ -278,7 +278,7 @@ class RepositorioSalas(RepositorioBase):
     ):
         """Na transação do primeiro acesso, o chamador confirma ou desfaz tudo."""
 
-        idade = validar_idade(idade)
+        idade = validar_idade_aluno(idade)
         dados = normalizar_classificacao(ano_escolar, turma, sala_escolar)
         with self._bloqueio, nullcontext() if na_transacao else self.conexao:
             aluno = self.conexao.execute(

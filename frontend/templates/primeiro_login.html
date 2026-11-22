@@ -13,7 +13,7 @@
   {{ csrf_input(csrf) }}
   {% if aluno %}
     {{ campo('nome', 'Nome completo', valor=request.form.get('nome', usuario_atual.nome if usuario_atual.nome != 'Aluno' else ''), autocomplete='name') }}
-    <label class="campo"><span>Idade</span><input name="idade" type="number" min="1" max="120" value="{{ request.form.get('idade', '') }}" required></label>
+    <label class="campo"><span>Idade</span><input name="idade" type="number" min="10" max="15" value="{{ request.form.get('idade', '') }}" required></label>
     {{ campos_sala_academica() }}
     <p class="dica">Você pode concluir o cadastro mesmo que o professor ainda não tenha criado a sala. Quando houver uma sala com o mesmo ano, turma e período, ela aparecerá automaticamente na sua área.</p>
   {% endif %}

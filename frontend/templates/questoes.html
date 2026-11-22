@@ -24,7 +24,17 @@
           <div class="acoes-linha">
             <a class="link" href="{{ url_for('editar_questao', questao_id=questao.id) }}">Editar</a>
             <form method="post" action="{{ url_for('alternar_questao', questao_id=questao.id) }}">{{ csrf_input(csrf) }}<button class="link" type="submit">{{ 'Pausar' if questao.ativa else 'Liberar' }}</button></form>
-            <form class="adaptar-questao" method="post" action="{{ url_for('adaptar_questao', questao_id=questao.id) }}" data-processando="Adaptando…">{{ csrf_input(csrf) }}<label for="adaptar-{{ questao.id }}">Nova dificuldade (IA)</label><select id="adaptar-{{ questao.id }}" name="dificuldade">{% for nivel in ['FÁCIL','MÉDIO','DIFÍCIL'] %}<option value="{{ nivel }}" {{ 'selected' if questao.dificuldade == nivel else '' }}>{{ nivel }}</option>{% endfor %}</select><button class="link" type="submit">Adaptar com IA</button></form>
+            <details class="adaptar-questao">
+              <summary class="link">Adaptar com IA</summary>
+              <form method="post" action="{{ url_for('adaptar_questao', questao_id=questao.id) }}" data-processando="Adaptando…">
+                {{ csrf_input(csrf) }}
+                <label for="adaptar-{{ questao.id }}">Nova dificuldade</label>
+                <select id="adaptar-{{ questao.id }}" name="dificuldade" required>
+                  {% for nivel in ['FÁCIL','MÉDIO','DIFÍCIL'] if nivel != questao.dificuldade %}<option value="{{ nivel }}">{{ nivel }}</option>{% endfor %}
+                </select>
+                <button class="link" type="submit">Gerar adaptação</button>
+              </form>
+            </details>
             <form class="formulario-narracao" method="post" action="{{ url_for('narracao_questao', questao_id=questao.id) }}">{{ csrf_input(csrf) }}<button class="link" type="submit">Narrar com Gemini</button></form>
             <form method="post" action="{{ url_for('excluir_questao', questao_id=questao.id) }}" data-confirmar="Excluir esta questão?">{{ csrf_input(csrf) }}<button class="link perigo" type="submit">Excluir</button></form>
           </div>

@@ -17,6 +17,10 @@
     <option value="">Todas as faixas</option>
     {% for faixa in dashboard.opcoes_faixas %}<option value="{{ faixa.name }}" {{ 'selected' if filtros.faixa == faixa.name else '' }}>{{ faixa.value }}</option>{% endfor %}
   </select></div>
+  <div class="campo"><label for="filtro-bimestre">Bimestre do calendário</label><select id="filtro-bimestre" name="bimestre">
+    <option value="">Todo o período ou datas abaixo</option>
+    {% for valor, nome in dashboard.opcoes_bimestres %}<option value="{{ valor }}" {{ 'selected' if filtros.bimestre == valor else '' }}>{{ nome }}</option>{% endfor %}
+  </select></div>
   <div class="campo"><label for="filtro-inicio">Data inicial</label><input id="filtro-inicio" type="date" name="data_inicio" value="{{ filtros.data_inicio }}"></div>
   <div class="campo"><label for="filtro-fim">Data final</label><input id="filtro-fim" type="date" name="data_fim" value="{{ filtros.data_fim }}"></div>
   <div class="campo"><label for="filtro-modo">Modo de jogo</label><select id="filtro-modo" name="modo">
@@ -29,7 +33,7 @@
     <option value="">Ativas e inativas</option><option value="ATIVA" {{ 'selected' if filtros.situacao == 'ATIVA' else '' }}>Ativas</option><option value="INATIVA" {{ 'selected' if filtros.situacao == 'INATIVA' else '' }}>Inativas</option>
   </select></div>
   <div class="acoes"><button class="botao" type="submit">Aplicar filtros</button><a class="link" href="{{ url_for('desempenho') }}">Limpar filtros</a></div>
-  <p class="dica">O período inclui o dia inicial e o dia final, no horário de São Paulo. Todos os indicadores, gráficos e a tabela usam os mesmos filtros.</p>
+  <p class="dica">O bimestre selecionado prevalece sobre as datas digitadas. O período inclui o dia inicial e o dia final, no horário de São Paulo. Todos os indicadores, gráficos e a tabela usam os mesmos filtros.</p>
 </form>
 <p class="dica" data-dashboard-status role="status">Resultados atualizados automaticamente a cada 10 segundos.</p>
 <div data-dashboard-resultados="{{ url_for('dados_desempenho', **filtros) }}">

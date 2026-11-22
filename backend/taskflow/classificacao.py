@@ -50,3 +50,14 @@ def validar_idade(idade):
     if not 1 <= valor <= 120:
         raise ErroDominio("Informe sua idade em anos completos, entre 1 e 120.")
     return valor
+
+
+def validar_idade_aluno(idade):
+    """Aceita somente alunos entre 10 e 15 anos completos."""
+    texto = str(idade).strip()
+    if len(texto) != 2 or not texto.isascii() or not texto.isdigit():
+        raise ErroDominio("A idade do aluno deve estar entre 10 e 15 anos completos.")
+    valor = int(texto)
+    if not 10 <= valor <= 15:
+        raise ErroDominio("A idade do aluno deve estar entre 10 e 15 anos completos.")
+    return valor
