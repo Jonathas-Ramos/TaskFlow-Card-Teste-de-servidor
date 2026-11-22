@@ -1,0 +1,189 @@
+from datetime import date, datetime, time, timedelta, timezone
+from enum import Enum
+import re
+from zoneinfo import ZoneInfo
+
+from backend.taskflow.dominio import MODOS_JOGO, NIVEIS_DIFICULDADE, ErroDominio
+from backend.taskflow.servicos.base import ServicoBase
+
+
+def normalizar_filtros_dashboard(valores=None):
+    """Valida a seleção e converte dias de São Paulo para limites UTC."""
+
+    valores = valores or {}
+    filtros = {
+        campo: str(valores.get(campo, "") or "").strip()
+        for campo in ("aluno_id", "data_inicio", "data_fim", "modo", "dificuldade", "situacao", "turma", "faixa")
+    }
+    for campo, opcoes, mensagem in (
+        ("modo", MODOS_JOGO, "Modo de jogo inválido."),
+        ("dificuldade", NIVEIS_DIFICULDADE, "Dificuldade inválida."),
+        ("situacao", ("ATIVA", "INATIVA"), "Situação da conta inválida."),
+    ):
+        filtros[campo] = filtros[campo].upper()
+        if filtros[campo] and filtros[campo] not in opcoes:
+            raise ErroDominio(mensagem)
+    if filtros["turma"] and not re.fullmatch(r"[0-9a-f]{64}", filtros["turma"]):
+        raise ErroDominio("Selecione uma turma válida.")
+    if filtros["faixa"] and filtros["faixa"] not in FaixaDesempenho.__members__:
+        raise ErroDominio("Selecione uma faixa de desempenho válida.")
+    consulta = dict(filtros)
+    if filtros["aluno_id"]:
+        try:
+            aluno_id = int(filtros["aluno_id"])
+            if not 0 < aluno_id <= 9_223_372_036_854_775_807:
+                raise ValueError
+        except ValueError:
+            raise ErroDominio("Selecione um aluno válido.") from None
+        consulta["aluno_id"] = aluno_id
+        filtros["aluno_id"] = str(aluno_id)
+
+    datas = {}
+    for campo in ("data_inicio", "data_fim"):
+        valor = filtros[campo]
+        if not valor:
+            continue
+        try:
+            data = date.fromisoformat(valor)
+            if data.isoformat() != valor:
+                raise ValueError
+            datas[campo] = data
+        except ValueError:
+            raise ErroDominio("Informe datas válidas no formato dia, mês e ano.") from None
+    if len(datas) == 2 and datas["data_inicio"] > datas["data_fim"]:
+        raise ErroDominio("A data inicial não pode ser posterior à data final.")
+    if datas:
+        fuso = ZoneInfo("America/Sao_Paulo")
+        try:
+            if "data_inicio" in datas:
+                consulta["inicio_utc"] = (
+                    datetime.combine(datas["data_inicio"], time.min, fuso)
+                    .astimezone(timezone.utc)
+                    .isoformat(timespec="seconds")
+                )
+            if "data_fim" in datas:
+                # Limite exclusivo inclui todas as respostas do último dia local.
+                consulta["fim_utc"] = (
+                    datetime.combine(datas["data_fim"] + timedelta(days=1), time.min, fuso)
+                    .astimezone(timezone.utc)
+                    .isoformat(timespec="seconds")
+                )
+        except (OverflowError, ValueError):
+            raise ErroDominio("O período informado está fora do intervalo permitido.") from None
+    return filtros, consulta
+
+
+class FaixaDesempenho(Enum):
+    DESTAQUE = "Destaque (80% ou mais)"
+    EM_PROGRESSO = "Em progresso (50% a 79%)"
+    PRECISA_APOIO = "Precisa de apoio (abaixo de 50%)"
+    SEM_RESPOSTAS = "Sem respostas"
+
+    @classmethod
+    def classificar(cls, total, acertos):
+        if not total:
+            return cls.SEM_RESPOSTAS
+        proporcao = acertos / total
+        if proporcao >= 0.8:
+            return cls.DESTAQUE
+        if proporcao >= 0.5:
+            return cls.EM_PROGRESSO
+        return cls.PRECISA_APOIO
+
+
+class ServicoDesempenho(ServicoBase):
+    def meu_desempenho(self, modo=None):
+        aluno = self._aluno()
+        if modo is None:
+            return self.repositorio.desempenho_aluno(aluno.id)
+        return self.repositorio.desempenho_aluno(aluno.id, modo=modo)
+
+    def reiniciar_treino_bot(self):
+        aluno = self._aluno()
+        removidas = self.repositorio.reiniciar_treino_bot(aluno.id)
+        self.repositorio.registrar_evento(
+            aluno.perfil, "TREINO_BOT_REINICIADO", "DESEMPENHO", aluno.id, aluno.id
+        )
+        return removidas
+
+    def desempenho_turma(self):
+        professor = self._professor()
+        alunos = {aluno.id: aluno for aluno in self.repositorio.listar_alunos(professor.id)}
+        resultados = []
+        for linha in self.repositorio.listar_desempenho_turma():
+            aluno = alunos.get(linha["aluno_id"])
+            if aluno is None:
+                continue
+            desempenho = self.repositorio.desempenho_aluno(aluno.id)
+            resultados.append((aluno, desempenho))
+        return resultados
+
+    def dashboard_pedagogica(self, filtros=None):
+        professor = self._professor()
+        filtros, consulta = normalizar_filtros_dashboard(filtros)
+        cadastrados = self.repositorio.listar_alunos(professor.id)
+        escolaridade = self.repositorio.listar_escolaridade_alunos()
+        turmas = {
+            perfil["chave_academica"]: (
+                f'{perfil["ano_escolar"].capitalize()} · Turma {perfil["turma"]} · '
+                f'Período {perfil["sala_escolar"].capitalize()}'
+            )
+            for aluno in cadastrados
+            if (perfil := escolaridade.get(aluno.id)) and perfil.get("chave_academica")
+        }
+        dados = {
+            linha["aluno_id"]: linha for linha in self.repositorio.listar_desempenho_turma(consulta)
+        }
+        contagem = {faixa: 0 for faixa in FaixaDesempenho}
+        alunos = []
+        for aluno in cadastrados:
+            if filtros["aluno_id"] and str(aluno.id) != filtros["aluno_id"]:
+                continue
+            if filtros["situacao"] and aluno.ativo != (filtros["situacao"] == "ATIVA"):
+                continue
+            perfil = escolaridade.get(aluno.id)
+            if filtros["turma"] and (not perfil or perfil["chave_academica"] != filtros["turma"]):
+                continue
+            registro = dados.get(aluno.id, {})
+            total = int(registro.get("total", 0))
+            acertos = int(registro.get("acertos", 0))
+            taxa = 100 * acertos / total if total else 0
+            faixa = FaixaDesempenho.classificar(total, acertos)
+            if filtros["faixa"] and faixa.name != filtros["faixa"]:
+                continue
+            contagem[faixa] += 1
+            alunos.append(
+                {
+                    "nome": aluno.nome,
+                    "ativo": aluno.ativo,
+                    "total": total,
+                    "acertos": acertos,
+                    "erros": total - acertos,
+                    "percentual": round(taxa, 1),
+                    "pontos": int(registro.get("pontos", 0)),
+                    "faixa": faixa.value,
+                    "turma": turmas.get(perfil["chave_academica"], "Sem turma vinculada") if perfil else "Sem turma vinculada",
+                }
+            )
+        alunos.sort(key=lambda aluno: (-aluno["total"], aluno["nome"].casefold()))
+        respostas = sum(aluno["total"] for aluno in alunos)
+        acertos = sum(aluno["acertos"] for aluno in alunos)
+        participantes = sum(aluno["total"] > 0 for aluno in alunos)
+        return {
+            "filtros": filtros,
+            "opcoes_alunos": cadastrados,
+            "opcoes_turmas": sorted(turmas.items(), key=lambda item: item[1].casefold()),
+            "opcoes_faixas": list(FaixaDesempenho),
+            "filtrado": any(filtros.values()),
+            "alunos": alunos,
+            "faixas": [
+                {"nome": faixa.value, "total": contagem[faixa]} for faixa in FaixaDesempenho
+            ],
+            "total_alunos": len(alunos),
+            "com_respostas": participantes,
+            "respostas": respostas,
+            "acertos": acertos,
+            "erros": respostas - acertos,
+            "participacao": round(100 * participantes / len(alunos), 1) if alunos else 0,
+            "aproveitamento": round(100 * acertos / respostas, 1) if respostas else 0,
+        }

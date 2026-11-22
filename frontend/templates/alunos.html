@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block titulo %}Alunos · TaskFlowCards{% endblock %}
+{% block conteudo %}
+<section class="cabecalho-pagina"><p class="rotulo">PROFESSOR</p><h1>Alunos</h1><p>Consulte os alunos cadastrados e suas salas.</p></section>
+<section class="painel">
+  <div class="titulo-painel"><h2>Alunos cadastrados</h2><span>{{ alunos|length }}</span></div>
+  <div class="lista-alunos">
+  {% for aluno, escolar in alunos %}
+    <article class="linha-aluno">
+      <div>
+        <strong>{{ aluno.nome }}</strong>
+        {% if aluno.gmail_vinculado %}<span>{{ aluno.identificador }}</span>{% else %}<span>Gmail pendente · ID {{ aluno.id }}</span>{% endif %}
+        {% if escolar %}<span>{{ escolar.ano_escolar }} · Turma {{ escolar.turma }} · Período {{ escolar.sala_escolar|capitalize }}</span>{% endif %}
+      </div>
+      <span class="status {{ 'ativo' if aluno.ativo else 'bloqueado' }}">{{ 'Ativo' if aluno.ativo else 'Inativo' }}</span>
+    </article>
+  {% else %}
+    <p class="vazio">Nenhum aluno cadastrado.</p>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}
